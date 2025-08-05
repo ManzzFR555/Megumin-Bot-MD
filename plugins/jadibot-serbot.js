@@ -100,7 +100,7 @@ printQRInTerminal: false,
 auth: { creds: state.creds, keys: makeCacheableSignalKeyStore(state.keys, pino({level: 'silent'})) },
 msgRetry,
 msgRetryCache, 
-browser: mcode ? Browsers.macOS("Chrome") : Browsers.macOS("Desktop"),
+browser: ['Windows', 'Chrome'],
 version: version,
 generateHighQualityLinkPreview: true
 }
@@ -126,10 +126,10 @@ return
 } 
 if (qr && mcode) {
 let fixTe = m.sender.split('@')[0]
-let secret = await sock.requestPairingCode((fixTe))
+let secret = await sock.requestPairingCode(fixTe)
 secret = secret.match(/.{1,4}/g)?.join("-")
 txtCode = await conn.sendMessage(m.chat, {text : rtx2}, { quoted: m })
-codeBot = await m.reply(`${secret}`)
+codeBot = await m.reply(secret)
 }
 if (txtCode && txtCode.key) {
 setTimeout(() => { conn.sendMessage(m.sender, { delete: txtCode.key })}, 30000)
