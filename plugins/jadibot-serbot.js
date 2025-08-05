@@ -16,6 +16,7 @@ import qrcode from "qrcode"
 import NodeCache from "node-cache"
 import fs from "fs"
 import path from "path"
+import fetch from "node-fetch"
 import pino from 'pino'
 import chalk from 'chalk'
 import util from 'util' 
@@ -37,21 +38,12 @@ const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 const meguminJBOptions = {}
 const retryMap = new Map()
-const maxAttempts = 5
+let commandFlags = {}
 if (globalThis.conns instanceof Array) console.log()
 else globalThis.conns = []
 let handler = async (m, { conn, args, usedPrefix, command, isModeration, text }) => {
-/*let time = globalThis.db.data.chats[m.chat].users[m.sender].Subs + 120000;
-if (new Date - globalThis.db.data.chats[m.chat].users[m.sender].Subs < 120000 && !isModeration) {
-return conn.reply(m.chat, `ꕥ Debes esperar *${msToTime(time - new Date())}* para volver a intentar vincular un socket.`, m);
-}*/
-const subBots = [...new Set([...globalThis.conns.filter((conn) => conn.user && conn.ws.socket && conn.ws.socket.readyState !== ws.CLOSED).map((conn) => conn)])]
-const subBotsCount = subBots.length
-if (subBotsCount === 20) {
-return m.reply('✎ Hemos llegado al límite de usos gratuitos. Por favor, intenta nuevamente más tarde.')
-}
 let who = m.mentionedJid && m.mentionedJid[0] ? m.mentionedJid[0] : m.fromMe ? conn.user.jid : m.sender
-let id = `${text ? text.replace(/\D/g, '') : who.split`@`[0]}`  //conn.getName(who)
+let id = `${who.split(`@`)[0]}`  //conn.getName(who)
 let pathMeguminJadiBot = path.join(`./${jadi}/`, id)
 if (!fs.existsSync(pathMeguminJadiBot)){
 fs.mkdirSync(pathMeguminJadiBot, { recursive: true })
@@ -64,7 +56,6 @@ meguminJBOptions.usedPrefix = usedPrefix
 meguminJBOptions.command = command
 meguminJBOptions.fromCommand = true
 meguminJadiBot(meguminJBOptions, text)
-globalThis.db.data.chats[m.chat].users[m.sender].Subs = new Date * 1
 } 
 handler.help = ['code', 'qr']
 handler.tags = ['socket']
@@ -116,7 +107,7 @@ generateHighQualityLinkPreview: true
 let sock = makeWASocket(connectionOptions)
 sock.isInit = false
 let isInit = true
-let reconnectAttempts = 0
+commandFlags[m.sender] = true
 
 async function connectionUpdate(update) {
 const { connection, lastDisconnect, isNewLogin, qr } = update
@@ -133,17 +124,11 @@ setTimeout(() => { conn.sendMessage(m.sender, { delete: txtQR.key })}, 30000)
 return
 } 
 if (qr && mcode) {
-let fixTe = text ? text.replace(/\D/g, '') : m.sender.split('@')[0]
+let fixTe = m.sender.split('@')[0]
 let secret = await sock.requestPairingCode((fixTe))
-// let secret = await sock.requestPairingCode((m.sender.split`@`[0]))
 secret = secret.match(/.{1,4}/g)?.join("-")
-//if (m.isWABusiness) {
 txtCode = await conn.sendMessage(m.chat, {text : rtx2}, { quoted: m })
-codeBot = await m.reply(secret)
-//} else {
-//txtCode = await conn.sendButton(m.chat, rtx2.trim(), wm, null, [], secret, null, m) 
-//}
-//console.log(secret)
+codeBot = await m.reply(`[✿] Código: *${secret}*`)
 }
 if (txtCode && txtCode.key) {
 setTimeout(() => { conn.sendMessage(m.sender, { delete: txtCode.key })}, 30000)
@@ -166,16 +151,10 @@ globalThis.conns.splice(i, 1)
 
 const reason = lastDisconnect?.error?.output?.statusCode || lastDisconnect?.error?.output?.payload?.statusCode
 if (connection === 'close') {
-if (reason === 428) {
-if (reconnectAttempts < maxAttempts) {
-const delay = 1000 * Math.pow(2, reconnectAttempts)
-console.log(`\n${chalk.bold.whiteBright.bgRed('WARNING:')} ${chalk.bold.magentaBright(`Intentando reconectar a +${path.basename(pathMeguminJadiBot)} en ${delay / 1000} segundos...`)}`)
+if (reason === 428 || reason === DisconnectReason.connectionClosed || reason === DisconnectReason.connectionLost) {
+console.log(`\n${chalk.bold.whiteBright.bgRed('WARNING:')} ${chalk.bold.magentaBright(`Intentando reconectar a +${path.basename(pathMeguminJadiBot)}...`)}`)
 await sleep(1000)
-reconnectAttempts++
 await creloadHandler(true).catch(console.error)
-} else {
-console.log(chalk.redBright(`Sub-bot (+${path.basename(pathMeguminJadiBot)}) agotó intentos de reconexión. intentando más tardes...`))
-}
 }
 if (reason === 408) {
 console.log(`\n${chalk.bold.whiteBright.bgRed('WARNING:')} ${chalk.bold.magentaBright(`Intentando reconectar a +${path.basename(pathMeguminJadiBot)}.`)}`)
@@ -190,10 +169,11 @@ fs.rmdirSync(pathMeguminJadiBot, { recursive: true })
 if (reason === 500) {
 console.log(`\n${chalk.bold.whiteBright.bgRed('WARNING:')} ${chalk.bold.magentaBright(`Session perdida de +${path.basename(pathMeguminJadiBot)}, borrando datos..`)}`)
 return creloadHandler(true).catch(console.error)
-// fs.rmdirSync(pathMeguminJadiBot, { recursive: true })
+fs.rmdirSync(pathMeguminJadiBot, { recursive: true })
 }
 if (reason === 515) {
 console.log(`\n${chalk.bold.whiteBright.bgRed('WARNING:')} ${chalk.bold.magentaBright(`Reinicio automatico para +${path.basename(pathMeguminJadiBot)}.`)}`)
+// await startSub()
 await creloadHandler(true).catch(console.error)
 }
 if (reason === 403) {
@@ -202,18 +182,21 @@ fs.rmdirSync(pathMeguminJadiBot, { recursive: true })
 }}
 if (globalThis.db.data == null) loadDatabase()
 if (connection == `open`) {
-reconnectAttempts = 0
 if (!globalThis.db.data?.users) loadDatabase()
+await joinChannels(sock)
+const isCode = /^(qr|code)$/.test(command)
+if (m && conn && isCode && commandFlags[m.sender]) {
+await conn.sendMessage(m.chat, {text: `[✿] Listo, tu Sub-Bot ha quedado configurado.\n\n> *Visita:* https://api.stellarwa.xyz` }, { quoted: m })
+delete commandFlags[m.sender]
+}
+
 let userName, userJid
 userName = sock.authState.creds.me.name || 'Anónimo'
 userJid = sock.authState.creds.me.jid || `${path.basename(pathMeguminJadiBot)}`
 console.log(`\n${chalk.bold.whiteBright.bgGreen('INFO:')} ${chalk.bold.cyanBright(`+${userJid.split('@')[0]} Conectado.`)}`)
 sock.isInit = true
 globalThis.conns.push(sock)
-
-if (options.fromCommand) {
-m?.chat ? await conn.sendMessage(m.chat, {text: `❤️‍🔥 SubBot conectado correctamente.` }, { quoted: m }) : ''
-}}}
+}}
 setInterval(async () => {
 if (!sock.user) {
 try { sock.ws.close() } catch (e) {      
@@ -226,10 +209,10 @@ delete globalThis.conns[i]
 globalThis.conns.splice(i, 1)
 }}, 60000)
 
-let handler = await import('../megumin/handler.js')
+let handler = await import('../handler.js')
 let creloadHandler = async function (restatConn) {
 try {
-const Handler = await import(`../megumin/handler.js?update=${Date.now()}`).catch(console.error)
+const Handler = await import(`../handler.js?update=${Date.now()}`).catch(console.error)
 if (Object.keys(Handler || {}).length) handler = Handler
 
 } catch (e) {
@@ -259,29 +242,6 @@ return true
 }
 creloadHandler(false)
 })
-}
-
-export async function startSubBots() {
-const subBotDir = path.resolve(`./${jadi}`);
-    if (!fs.existsSync(subBotDir)) return;
-    const subBotFolders = fs.readdirSync(subBotDir).filter(folder => 
-        fs.statSync(path.join(subBotDir, folder)).isDirectory()
-    );
-    for (const folder of subBotFolders) {
-        const pathMeguminJadiBot = path.join(subBotDir, folder);
-        const credsPath = path.join(pathMeguminJadiBot, "creds.json");
-        if (fs.existsSync(credsPath)) {
-            await meguminJadiBot({
-                pathMeguminJadiBot,
-                m: null,
-                conn: globalThis.conn,
-                args: [],
-                usedPrefix: '#',
-                command: 'jadibot',
-                fromCommand: false
-            });
-        }
-    }
 }
 
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
@@ -362,3 +322,8 @@ async function checkSubBots() {
 }
 
 setInterval(checkSubBots, 60000); //1min
+
+async function joinChannels(conn) {
+for (const channelId of Object.values(global.channel)) {
+await conn.newsletterFollow(channelId).catch(() => {})
+}}
