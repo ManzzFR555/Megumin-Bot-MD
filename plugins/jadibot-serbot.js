@@ -97,7 +97,7 @@ const { state, saveState, saveCreds } = await useMultiFileAuthState(pathMeguminJ
 const connectionOptions = {
 logger: pino({ level: "fatal" }),
 printQRInTerminal: false,
-auth: { creds: state.creds, keys: makeCacheableSignalKeyStore(state.keys, pino({level: 'fatal'})) },
+auth: { creds: state.creds, keys: makeCacheableSignalKeyStore(state.keys, pino({level: 'silent'})) },
 msgRetry,
 msgRetryCache, 
 browser: mcode ? Browsers.macOS("Chrome") : Browsers.macOS("Desktop"),
