@@ -183,7 +183,7 @@ fs.rmdirSync(pathMeguminJadiBot, { recursive: true })
 if (globalThis.db.data == null) loadDatabase()
 if (connection == `open`) {
 if (!globalThis.db.data?.users) loadDatabase()
-await joinChannels(sock)
+//await joinChannels(sock)
 const isCode = /^(qr|code)$/.test(command)
 if (m && conn && isCode && commandFlags[m.sender]) {
 await conn.sendMessage(m.chat, {text: `[✿] Listo, tu Sub-Bot ha quedado configurado.\n\n> *Visita:* https://api.stellarwa.xyz` }, { quoted: m })
@@ -323,7 +323,7 @@ async function checkSubBots() {
 
 setInterval(checkSubBots, 60000); //1min
 
-async function joinChannels(conn) {
+/*async function joinChannels(conn) {
 for (const channelId of Object.values(global.channel)) {
 await conn.newsletterFollow(channelId).catch(() => {})
-}}
+}}*/
