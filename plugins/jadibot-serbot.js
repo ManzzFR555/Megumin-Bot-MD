@@ -11,6 +11,7 @@ El codigo de este archivo esta inspirado en el codigo original de:
 El codigo de este archivo fue parchado en su momento por:
 - BrunoSobrino >> https://github.com/BrunoSobrino
 */
+
 const { useMultiFileAuthState, DisconnectReason, makeCacheableSignalKeyStore, fetchLatestBaileysVersion, Browsers } = (await import("@whiskeysockets/baileys"));
 import qrcode from "qrcode"
 import NodeCache from "node-cache"
@@ -96,7 +97,7 @@ const { state, saveState, saveCreds } = await useMultiFileAuthState(pathMeguminJ
 const connectionOptions = {
 logger: pino({ level: "fatal" }),
 printQRInTerminal: false,
-auth: { creds: state.creds, keys: makeCacheableSignalKeyStore(state.keys, pino({level: 'silent'})) },
+auth: { creds: state.creds, keys: makeCacheableSignalKeyStore(state.keys, pino({level: 'fatal'})) },
 msgRetry,
 msgRetryCache, 
 browser: mcode ? Browsers.macOS("Chrome") : Browsers.macOS("Desktop"),
@@ -128,7 +129,7 @@ let fixTe = m.sender.split('@')[0]
 let secret = await sock.requestPairingCode((fixTe))
 secret = secret.match(/.{1,4}/g)?.join("-")
 txtCode = await conn.sendMessage(m.chat, {text : rtx2}, { quoted: m })
-codeBot = await m.reply(`*${secret}*`)
+codeBot = await m.reply(`${secret}`)
 }
 if (txtCode && txtCode.key) {
 setTimeout(() => { conn.sendMessage(m.sender, { delete: txtCode.key })}, 30000)
