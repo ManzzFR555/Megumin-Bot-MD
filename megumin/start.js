@@ -75,27 +75,213 @@ loadDatabase();
 
 /* ------------------------------------------------*/
 
-global.chatgpt = new Low(new JSONFile(path.join(__dirname, '/db/chatgpt.json')));
-global.loadChatgptDB = async function loadChatgptDB() {
-if (global.chatgpt.READ) {
-return new Promise((resolve) =>
-setInterval(async function() {
-if (!global.chatgpt.READ) {
-clearInterval(this);
-resolve( global.chatgpt.data === null ? global.loadChatgptDB() : global.chatgpt.data );
-}}, 1 * 1000));
+/**
+ * Procesa texto para resolver LIDs en menciones (@) - VERSION MEJORADA
+ */
+async function processTextMentions(text, groupId) {
+  if (!text || !groupId || !text.includes('@')) return text;
+
+  const mentionRegex = /@(\d{8,20})/g;
+  const mentions = [...text.matchAll(mentionRegex)];
+
+  if (!mentions.length) return text;
+
+  let processedText = text;
+  const processedMentions = new Set(); // Evitar procesar la misma mención múltiples veces
+
+  for (const mention of mentions) {
+    const [fullMatch, lidNumber] = mention;
+
+    // Evitar duplicados
+    if (processedMentions.has(lidNumber)) continue;
+    processedMentions.add(lidNumber);
+
+    const lidJid = `${lidNumber}@lid`;
+
+    try {
+      const resolvedJid = await global.lidResolver.resolveLid(lidJid, groupId);
+      if (resolvedJid && resolvedJid !== lidJid) {
+        const resolvedNumber = resolvedJid.split('@')[0];
+
+        // Reemplazar TODAS las ocurrencias de esta mención en el texto
+        const globalRegex = new RegExp(`@${lidNumber}`, 'g');
+        processedText = processedText.replace(globalRegex, `@${resolvedNumber}`);
+      }
+    } catch (error) {
+      console.log(chalk.gray(`Error procesando mención LID ${lidNumber}:`, error.message));
+    }
+  }
+
+  return processedText;
 }
-if (global.chatgpt.data !== null) return;
-global.chatgpt.READ = true;
-await global.chatgpt.read().catch(console.error);
-global.chatgpt.READ = null;
-global.chatgpt.data = {
-users: {},
-...(global.chatgpt.data || {}),
+
+/**
+ * Intercepta y procesa mensajes antes del handler
+ */
+async function interceptMessages(messages) {
+  if (!Array.isArray(messages)) return messages;
+
+  const processedMessages = [];
+  for (const message of messages) {
+    try {
+      const processedMessage = await global.lidResolver.processMessage(message);
+      processedMessages.push(processedMessage);
+    } catch (error) {
+      console.log(chalk.gray('Error interceptando mensaje:', error));
+      processedMessages.push(message);
+    }
+  }
+
+  return processedMessages;
+}
+
+/**
+ * Obtener información de usuario por LID
+ */
+global.getUserInfoByLid = function(lidNumber) {
+  if (!global.lidResolver) return null;
+  return global.lidResolver.getUserInfo(lidNumber);
 };
-global.chatgpt.chain = lodash.chain(global.chatgpt.data);
+
+/**
+ * Obtener información de usuario por JID
+ */
+global.getUserInfoByJid = function(jid) {
+  if (!global.lidResolver) return null;
+  return global.lidResolver.getUserInfoByJid(jid);
 };
-loadChatgptDB();
+
+/**
+ * Obtener LID de un JID (búsqueda inversa)
+ */
+global.findLidByJid = function(jid) {
+  if (!global.lidResolver) return null;
+  return global.lidResolver.findLidByJid(jid);
+};
+
+/**
+ * Listar todos los usuarios en caché
+ */
+global.getAllCachedUsers = function() {
+  if (!global.lidResolver) return [];
+  return global.lidResolver.getAllUsers();
+};
+
+/**
+ * Obtener estadísticas del caché LID
+ */
+global.getLidStats = function() {
+  if (!global.lidResolver) return null;
+  return global.lidResolver.getStats();
+};
+
+/**
+ * Analizar y corregir números telefónicos en caché
+ */
+global.analyzePhoneNumbers = function() {
+  if (!global.lidResolver) return null;
+  return global.lidResolver.analyzePhoneNumbers();
+};
+
+/**
+ * Corregir automáticamente números telefónicos
+ */
+global.autoCorrectPhoneNumbers = function() {
+  if (!global.lidResolver) return null;
+  return global.lidResolver.autoCorrectPhoneNumbers();
+};
+
+/**
+ * Obtener usuarios por país
+ */
+global.getUsersByCountry = function() {
+  if (!global.lidResolver) return {};
+  return global.lidResolver.getUsersByCountry();
+};
+
+/**
+ * Validar si un string es un número telefónico
+ */
+global.validatePhoneNumber = function(phoneNumber) {
+  if (!global.lidResolver) return false;
+  return global.lidResolver.phoneValidator.isValidPhoneNumber(phoneNumber);
+};
+
+/**
+ * Detectar si un LID es realmente un número telefónico
+ */
+global.detectPhoneInLid = function(lidString) {
+  if (!global.lidResolver) return { isPhone: false };
+  return global.lidResolver.phoneValidator.detectPhoneInLid(lidString);
+};
+
+/**
+ * Forzar guardado del caché LID
+ */
+global.forceSaveLidCache = function() {
+  if (!global.lidResolver) return false;
+  global.lidResolver.forceSave();
+  return true;
+};
+
+/**
+ * Función para mostrar estadísticas del caché LID
+ */
+global.getLidCacheInfo = function() {
+  if (!global.lidResolver) {
+    return 'Sistema LID no inicializado';
+  }
+
+  const stats = global.lidResolver.getStats();
+  const analysis = global.lidResolver.analyzePhoneNumbers();
+
+  return `📱 *ESTADÍSTICAS DEL CACHÉ LID*
+
+📊 *General:*
+• Total de entradas: ${stats.total}
+• Entradas válidas: ${stats.valid}
+• No encontradas: ${stats.notFound}
+• Con errores: ${stats.errors}
+• En procesamiento: ${stats.processing}
+
+📞 *Números telefónicos:*
+• Detectados: ${stats.phoneNumbers}
+• Corregidos: ${stats.corrected}
+• Problemáticos: ${analysis.stats.phoneNumbersProblematic}
+
+🗂️ *Caché:*
+• Archivo: ${stats.cacheFile}
+• Existe: ${stats.fileExists ? 'Sí' : 'No'}
+• Cambios pendientes: ${stats.isDirty ? 'Sí' : 'No'}
+• Mapeos JID: ${stats.jidMappings}
+
+🌍 *Países detectados:*
+${Object.entries(global.lidResolver.getUsersByCountry())
+  .slice(0, 5)
+  .map(([country, users]) => `• ${country}: ${users.length} usuarios`)
+  .join('\n')}`;
+};
+
+/**
+ * Función para forzar corrección de números telefónicos
+ */
+global.forcePhoneCorrection = function() {
+  if (!global.lidResolver) {
+    return 'Sistema LID no inicializado';
+  }
+
+  try {
+    const result = global.lidResolver.autoCorrectPhoneNumbers();
+
+    if (result.corrected > 0) {
+      return `Se corrigieron ${result.corrected} números telefónicos automáticamente.`;
+    } else {
+      return 'No se encontraron números telefónicos que requieran corrección.';
+    }
+  } catch (error) {
+    return `Error en corrección automática: ${error.message}`;
+  }
+};
 
 global.creds = 'creds.json'
 global.authFile = 'MeguminSession'
@@ -171,19 +357,49 @@ console.debug = () => {}
 ['log', 'warn', 'error'].forEach(methodName => redefineConsoleMethod(methodName, filterStrings))
 
 const connectionOptions = {
-logger: pino({ level: "fatal" }),
+logger: pino({ level: 'silent' }),
 printQRInTerminal: opcion == '1' ? true : methodCodeQR ? true : false,
 mobile: MethodMobile, 
+browser: ['Windows', 'Chrome'],
 auth: {
 creds: state.creds,
 keys: makeCacheableSignalKeyStore(state.keys, Pino({ level: "fatal" }).child({ level: "fatal" })),
 },
-browser: opcion == '1' ? Browsers.macOS("Desktop") : methodCodeQR ? Browsers.macOS("Desktop") : Browsers.macOS("Chrome"),
-version: version,
-generateHighQualityLinkPreview: true
+markOnlineOnConnect: false, 
+generateHighQualityLinkPreview: true, 
+syncFullHistory: false,
+getMessage: async (key) => {
+try {
+let jid = jidNormalizedUser(key.remoteJid);
+let msg = await store.loadMessage(jid, key.id);
+return msg?.message || "";
+} catch (error) {
+return "";
+}},
+msgRetryCounterCache: msgRetryCounterCache || new Map(),
+userDevicesCache: userDevicesCache || new Map(),
+//msgRetryCounterMap,
+defaultQueryTimeoutMs: undefined,
+cachedGroupMetadata: (jid) => globalThis.conn.chats[jid] ?? {},
+version: version, 
+keepAliveIntervalMs: 55000, 
+maxIdleTimeMs: 60000, 
 };
 
 global.conn = makeWASocket(connectionOptions)
+global.lidResolver = new LidResolver(global.conn);
+
+// Ejecutar análisis y corrección automática al inicializar (SILENCIOSO)
+setTimeout(async () => {
+  try {
+    if (global.lidResolver) {
+      // Ejecutar corrección automática de números telefónicos (sin logs)
+      global.lidResolver.autoCorrectPhoneNumbers();
+    }
+  } catch (error) {
+    console.log(chalk.gray('Error en análisis inicial:', error.message));
+  }
+}, 5000);
 if (!fs.existsSync(`./${authFile}/creds.json`)) {
 if (opcion === '2' || methodCode) {
 opcion = '2'
@@ -377,6 +593,74 @@ const [ffmpeg, ffprobe, ffmpegWebp, convert, magick, gm, find] = test;
 const s = global.support = {ffmpeg, ffprobe, ffmpegWebp, convert, magick, gm, find};
 Object.freeze(global.support);
 }
+
+// Limpiar y optimizar caché LID cada 30 minutos
+setInterval(async () => {
+  if (stopped === 'close' || !conn || !conn?.user || !global.lidResolver) return;
+
+  try {
+    const stats = global.lidResolver.getStats();
+
+    // Si el caché tiene más de 800 entradas, hacer limpieza
+    if (stats.total > 800) {
+      // Eliminar entradas antiguas (más de 7 días) que no se han encontrado
+      const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
+      let cleanedCount = 0;
+
+      for (const [key, entry] of global.lidResolver.cache.entries()) {
+        if (entry.timestamp < sevenDaysAgo && (entry.notFound || entry.error)) {
+          global.lidResolver.cache.delete(key);
+          if (entry.jid && global.lidResolver.jidToLidMap.has(entry.jid)) {
+            global.lidResolver.jidToLidMap.delete(entry.jid);
+          }
+          cleanedCount++;
+        }
+      }
+
+      if (cleanedCount > 0) {
+        global.lidResolver.markDirty();
+      }
+    }
+
+    // Ejecutar corrección automática ocasionalmente
+    if (Math.random() < 0.1) { // 10% de probabilidad
+      const correctionResult = global.lidResolver.autoCorrectPhoneNumbers();
+    }
+  } catch (error) {
+    console.log(chalk.gray('Error en limpieza de caché LID:', error.message));
+  }
+}, 30 * 60 * 1000); // Cada 30 minutos
+
+// Manejo mejorado de salida del proceso
+const gracefulShutdown = () => {
+  if (global.lidResolver?.isDirty) {
+    try {
+      global.lidResolver.forceSave();
+    } catch (error) {
+      console.log(chalk.gray('Error guardando caché LID:', error.message));
+    }
+  }
+};
+
+process.on('exit', gracefulShutdown);
+
+process.on('SIGINT', () => {
+  gracefulShutdown();
+  process.exit(0);
+});
+
+process.on('SIGTERM', () => {
+  gracefulShutdown();
+  process.exit(0);
+});
+
+// Manejo de errores no capturadas relacionadas con LID
+process.on('unhandledRejection', (reason, promise) => {
+  if (reason && reason.message && reason.message.includes('lid')) {
+    console.log(chalk.gray('Error no manejado relacionado con LID:', reason));
+  }
+});
+
 function clearTmp() {
 const tmpDir = join(__dirname, 'tmp')
 const filenames = readdirSync(tmpDir)
