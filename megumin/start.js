@@ -6,7 +6,7 @@ import path, { join } from 'path'
 import {fileURLToPath, pathToFileURL} from 'url'
 import { platform } from 'process'
 import * as ws from 'ws'
-import LidResolver from './lib/fixlids.js';
+import LidResolver from '../lib/fixlids.js';
 import fs, { watchFile, unwatchFile, writeFileSync, readdirSync, statSync, unlinkSync, existsSync, readFileSync, copyFileSync, watch, rmSync, readdir, stat, mkdirSync, rename, writeFile } from 'fs'
 import yargs from 'yargs'
 import { spawn } from 'child_process'
