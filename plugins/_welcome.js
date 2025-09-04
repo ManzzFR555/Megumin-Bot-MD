@@ -4,7 +4,7 @@ import fetch from 'node-fetch';
 export async function before(m, { conn, participants, groupMetadata }) {
   if (!m.messageStubType || !m.isGroup) return true;
 
- // Usa /tourl sobre una imagen para hacerla url y ponerla aquí si deseas cambiar duchas imágenes.
+ // Usa /tourl sobre una imagen para hacerla url y ponerla aquí si deseas cambiar dichas imágenes.
 
   let imgWelcome = 'https://files.catbox.moe/vnw5j7.jpg';
   let imgBye = 'https://files.catbox.moe/9bcdi3.jpg';
