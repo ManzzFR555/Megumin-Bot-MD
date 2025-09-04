@@ -1,4 +1,4 @@
-let handler = m => m
+/*let handler = m => m
 handler.before = async function (m, { conn, isBotAdmin }) {
 
 let chat = globalThis.db.data.chats[m.chat];
@@ -19,4 +19,4 @@ if (jid.split('@')[0].startsWith('5')) {
 await conn.groupRequestParticipantsUpdate(m.chat, [jid], "approve")}}}
 
 }
-export default handler
+export default handler*/
