@@ -16,9 +16,7 @@ export async function before(m, { conn, participants, groupMetadata }) {
 
   let who = m.messageStubParameters[0] + '@s.whatsapp.net';
   let user = global.db.data.users[who];
-  let userName = (user && typeof user.name === 'string' && user.name.trim() && !/undef|null|nan/i.test(user.name))
-  ? user.name.trim()
-  : (await conn.getName(who) || who.split('@')[0]);
+    let userName = user.name : await conn.getName(who);
 
   let total = groupMetadata.participants.length;
 
