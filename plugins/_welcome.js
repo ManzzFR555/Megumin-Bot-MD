@@ -16,7 +16,7 @@ export async function before(m, { conn, participants, groupMetadata }) {
 
   let who = m.messageStubParameters[0] + '@s.whatsapp.net';
   let user = global.db.data.users[who];
-    let userName = await conn.getName(who);
+  let userName = user ? user.name : await conn.getName(who);
 
   let total = groupMetadata.participants.length;
 
@@ -28,7 +28,7 @@ export async function before(m, { conn, participants, groupMetadata }) {
 │ ✨ *ＢＩＥＮＶＥＮＩＤＯ* ✨
 ╰──┈┈──╯
 
-🎉 Usuario: *@${who.split('@')[0]}*
+🎉 Usuario: *@${userName}*
 👥 Ahora somos: *${total}* participantes  
 
 Disfruta tu estancia 🚀
@@ -45,7 +45,7 @@ Disfruta tu estancia 🚀
 │ 💔 *ＤＥＳＰＥＤＩＤＡ* 💔
 ╰───┈┈───╯
 
-😢 Usuario: *@${who.split('@')[0]}*
+😢 Usuario: *@${userName}*
 👥 Ahora somos: *${total}* participantes  
 
 ¡Esperamos verte pronto! 🌹
