@@ -28,7 +28,7 @@ export async function before(m, { conn, participants, groupMetadata }) {
 │ ✨ *ＢＩＥＮＶＥＮＩＤＯ* ✨
 ╰──┈┈──╯
 
-🎉 Usuario: *@${userName}*
+🎉 Usuario: *${userName}*
 👥 Ahora somos: *${total}* participantes  
 
 Disfruta tu estancia 🚀
@@ -45,7 +45,7 @@ Disfruta tu estancia 🚀
 │ 💔 *ＤＥＳＰＥＤＩＤＡ* 💔
 ╰───┈┈───╯
 
-😢 Usuario: *@${userName}*
+😢 Usuario: *${userName}*
 👥 Ahora somos: *${total}* participantes  
 
 ¡Esperamos verte pronto! 🌹
