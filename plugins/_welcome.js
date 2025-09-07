@@ -54,7 +54,7 @@ export async function before(m, { conn, participants, groupMetadata }) {
 
   let chat = global.db.data.chats[m.chat];
   const getMentionedJid = () => {
-    return m.messageStubParameters.map(param => normalizeJid(param));
+    return m.messageStubParameters.map(param => resolveLidToJid(param));
   };
 
   let whoRaw = m.messageStubParameters[0];
