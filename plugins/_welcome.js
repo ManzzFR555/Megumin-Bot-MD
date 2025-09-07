@@ -1,20 +1,26 @@
 let WAMessageStubType = (await import('@whiskeysockets/baileys')).default;
 import fetch from 'node-fetch';
 
-async function getUserName(conn, id) {
-  try {
-    const jid = id.includes('@') ? id : id + '@s.whatsapp.net';
+function normalizeJid(id) {
+  if (!id) return null;
+  if (id.endsWith('@s.whatsapp.net')) return id;
+  if (id.endsWith('@lid')) return id.replace('@lid', '@s.whatsapp.net');
+  return id.includes('@') ? id : `${id}@s.whatsapp.net`;
+}
 
+async function getUserName(conn, jid) {
+  try {
     const user = global.db.data.users[jid];
     if (user && typeof user.name === 'string' && user.name.trim() && !/undef|undefined|null|nan/i.test(user.name)) {
       return user.name.trim();
     }
+
     const contactName = await conn.getName(jid);
     if (contactName) return contactName;
 
     return jid.split('@')[0];
   } catch {
-    return id.split('@')[0];
+    return jid.split('@')[0];
   }
 }
 
@@ -27,10 +33,11 @@ export async function before(m, { conn, participants, groupMetadata }) {
 
   let chat = global.db.data.chats[m.chat];
   const getMentionedJid = () => {
-    return m.messageStubParameters.map(param => `${param}@s.whatsapp.net`);
+    return m.messageStubParameters.map(param => normalizeJid(param));
   };
 
-  let who = m.messageStubParameters[0];
+  let whoRaw = m.messageStubParameters[0];
+  let who = normalizeJid(whoRaw);
   let userName = await getUserName(conn, who);
 
   let total = groupMetadata.participants.length;
