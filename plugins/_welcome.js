@@ -28,6 +28,23 @@ function resolveLidToJid(rawId) {
   return rawId;
 }
 
+async function getUserName(conn, jid) {
+  try {
+    const user = global.db.data.users[jid];
+    if (user && typeof user.name === 'string' && user.name.trim() && !/undef|undefined|null|nan/i.test(user.name)) {
+      return user.name.trim();
+    }
+
+    const contactName = await conn.getName(jid);
+    if (contactName) return contactName;
+
+    return jid.split('@')[0];
+  } catch {
+    return jid.split('@')[0];
+  }
+}
+
+
 export async function before(m, { conn, participants, groupMetadata }) {
   if (!m.messageStubType || !m.isGroup) return true;
 
