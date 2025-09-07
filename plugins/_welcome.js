@@ -72,7 +72,6 @@ export async function before(m, { conn, participants, groupMetadata }) {
 ╰──┈┈──╯
 
 🎉 Usuario: *@${who.split('@')[0]}*
-👤 Nombre: *${userName}*
 👥 Ahora somos: *${total}* participantes  
 
 Disfruta tu estancia 🚀
@@ -90,7 +89,6 @@ Disfruta tu estancia 🚀
 ╰───┈┈───╯
 
 😢 Usuario: *@${who.split('@')[0]}*
-👤 Nombre: *${userName}*
 👥 Ahora somos: *${total}* participantes  
 
 ¡Esperamos verte pronto! 🌹
