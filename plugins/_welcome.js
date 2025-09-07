@@ -1,6 +1,6 @@
 let WAMessageStubType = (await import('@whiskeysockets/baileys')).default;
 import fetch from 'node-fetch';
-import PhoneValidator from './lib/PhoneValidator.js';
+import PhoneValidator from '../lib/PhoneValidator.js';
 
 const phoneValidator = new PhoneValidator();
 
