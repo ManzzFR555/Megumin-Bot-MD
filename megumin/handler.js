@@ -105,45 +105,18 @@ registered: false,
 regTime: -1,
 rendang: 0, 
 }
-let akinator = global.db.data.users[m.sender].akinator
-if (typeof akinator !== 'object')
-global.db.data.users[m.sender].akinator = {}
-if (akinator) {
-if (!('sesi' in akinator)) akinator.sesi = false
-if (!('server' in akinator)) akinator.server = null
-if (!('frontaddr' in akinator)) akinator.frontaddr = null
-if (!('session' in akinator)) akinator.session = null
-if (!('signature' in akinator)) akinator.signature = null
-if (!('question' in akinator)) akinator.question = null
-if (!('progression' in akinator)) akinator.progression = null
-if (!('step' in akinator)) akinator.step = null
-if (!('soal' in akinator)) akinator.soal = null
-} else
-global.db.data.users[m.sender].akinator = {
-sesi: false,
-server: null,
-frontaddr: null,
-session: null,
-signature: null,
-question: null,
-progression: null,
-step: null, 
-soal: null
-}                   
 let chat = global.db.data.chats[m.chat]
 if (typeof chat !== 'object')
 global.db.data.chats[m.chat] = {}
 
 if (chat) {
 if (!('isBanned' in chat)) chat.isBanned = false         
-if (!('welcome' in chat)) chat.welcome = true 
-if (!('autoresponder' in chat)) chat.autoresponder = false          
+if (!('welcome' in chat)) chat.welcome = true      
 if (!('detect' in chat)) chat.detect = true               
 if (!('sWelcome' in chat)) chat.sWelcome = ''          
 if (!('sBye' in chat)) chat.sBye = ''                    
 if (!('sPromote' in chat)) chat.sPromote = ''             
 if (!('sDemote' in chat)) chat.sDemote = ''
-if (!('sAutoresponder' in chat)) chat.sAutoresponder = '' 
 if (!('sCondition' in chat)) chat.sCondition = JSON.stringify([{ grupo: { usuario: [], condicion: [], admin: '' }, prefijos: []}])                   
 if (!('nsfw' in chat)) chat.nsfw = false                    
 if (!('antiLink' in chat)) chat.antiLink = false              
@@ -158,9 +131,7 @@ sWelcome: '',
 sBye: '',
 sPromote: '',
 sDemote: '', 
-sAutoresponder: '',
 sCondition: JSON.stringify([{ grupo: { usuario: [], condicion: [], admin: '' }, prefijos: []}]), 
-autoresponder: false,
 nsfw: false,
 antiLink: false,
 modoadmin: false,
